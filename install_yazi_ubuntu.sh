@@ -11,7 +11,15 @@ sudo apt install -y curl git python3 python3-pip python3-venv file unzip pipx
 
 # Install optional dependencies for enhanced functionality
 echo "Installing optional dependencies (ffmpeg, 7zip, jq, poppler-utils, fd-find, ripgrep, fzf, zoxide, imagemagick)..."
-sudo apt install -y ffmpeg 7zip jq poppler-utils fd-find ripgrep fzf zoxide imagemagick || echo "Some optional dependencies may not be available on your system"
+sudo apt install -y ffmpeg 7zip jq poppler-utils fd-find ripgrep fzf zoxide imagemagick f3d || echo "Some optional dependencies may not be available on your system"
+
+# Install cb (ClipBoard) for system-clipboard plugin
+echo "Installing ClipBoard (cb) for system-clipboard plugin..."
+if ! command -v cb &> /dev/null; then
+    curl -sSL https://raw.githubusercontent.com/Slackadays/Clipboard/main/install.sh | bash
+else
+    echo "ClipBoard (cb) already installed"
+fi
 
 # Install Yazi - Download latest pre-built binary
 echo "Downloading latest Yazi release..."
@@ -100,6 +108,26 @@ else
     git clone https://github.com/dimi1357/mesh-preview.yazi
 fi
 
+# Install f3d-preview.yazi
+echo "Installing f3d-preview.yazi..."
+cd "$PLUGINS_DIR"
+if [ -d "f3d-preview.yazi" ]; then
+    echo "f3d-preview.yazi already exists, updating..."
+    cd f3d-preview.yazi && git pull && cd ..
+else
+    git clone https://github.com/ruudjhuu/f3d-preview.yazi
+fi
+
+# Install system-clipboard.yazi
+echo "Installing system-clipboard.yazi..."
+cd "$PLUGINS_DIR"
+if [ -d "system-clipboard.yazi" ]; then
+    echo "system-clipboard.yazi already exists, updating..."
+    cd system-clipboard.yazi && git pull && cd ..
+else
+    git clone https://github.com/orhnk/system-clipboard.yazi
+fi
+
 # Setup virtual environment for mesh-preview
 echo "Setting up Python virtual environment for mesh-preview..."
 cd "$PLUGINS_DIR/mesh-preview.yazi"
@@ -129,12 +157,14 @@ edit = [
 ]
 
 [plugin]
+prepend_preloaders = [
+    { url = "*.{3mf,obj,pts,ply,stl,step,stp}", run = "f3d-preview" },
+]
+
 prepend_previewers = [
     { url = "*.pkl", run = "pickle" },
     { url = "*.pickle", run = "pickle" },
-    { url = "*.obj", run = "mesh-preview" },
-    { url = "*.stl", run = "mesh-preview" },
-    { url = "*.ply", run = "mesh-preview" },
+    { url = "*.{3mf,obj,pts,ply,stl,step,stp}", run = "f3d-preview" },
     { url = "*.gltf", run = "mesh-preview" },
     { url = "*.glb", run = "mesh-preview" },
     { url = "*.fbx", run = "mesh-preview" },
@@ -150,12 +180,31 @@ prepend_previewers = [
 EOF
 
 echo "Configuration written to $CONFIG_FILE"
+
+# Create or update keymap.toml for system-clipboard
+KEYMAP_FILE="$HOME/.config/yazi/keymap.toml"
+
+if [ -f "$KEYMAP_FILE" ]; then
+    echo "Backing up existing keymap.toml to keymap.toml.backup"
+    cp "$KEYMAP_FILE" "$KEYMAP_FILE.backup"
+fi
+
+cat > "$KEYMAP_FILE" << 'EOF'
+[manager]
+prepend_keymap = [
+    { on = "<C-y>", run = "plugin system-clipboard", desc = "Copy to system clipboard" },
+]
+EOF
+
+echo "Keymap configuration written to $KEYMAP_FILE"
 echo ""
 echo "=== Installation Complete ==="
 echo ""
 echo "Installed components:"
 echo "  ✓ Yazi file manager"
 echo "  ✓ rich-cli (for rich-preview plugin)"
+echo "  ✓ f3d (for f3d-preview plugin)"
+echo "  ✓ ClipBoard/cb (for system-clipboard plugin)"
 echo ""
 echo "Installed plugins:"
 ls -1 "$PLUGINS_DIR"
@@ -163,9 +212,13 @@ echo ""
 echo "Plugin details:"
 echo "  • rich-preview.yazi - Enhanced preview for code/text files (CSV, Markdown, JSON, etc.)"
 echo "  • pickle.yazi - Preview Python pickle files"
-echo "  • mesh-preview.yazi - Preview 3D mesh files (OBJ, STL, PLY, GLTF, etc.)"
+echo "  • mesh-preview.yazi - Preview 3D mesh files (GLTF, GLB, FBX, 3DS, OFF, DAE)"
+echo "  • f3d-preview.yazi - Preview 3D files via f3d (3MF, OBJ, PTS, PLY, STL, STEP, STP)"
+echo "  • system-clipboard.yazi - Copy files to system clipboard (Ctrl+Y)"
 echo ""
-echo "Configuration file: $CONFIG_FILE"
+echo "Configuration files:"
+echo "  $CONFIG_FILE"
+echo "  $KEYMAP_FILE"
 echo ""
 echo "IMPORTANT: You need to restart your shell for pipx and yazi PATH changes to take effect"
 echo "After restarting, you can start yazi by typing: yazi"
