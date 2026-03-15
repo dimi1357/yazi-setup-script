@@ -124,6 +124,8 @@ F3D_MAIN="$PLUGINS_DIR/f3d-preview.yazi/main.lua"
 if [ -f "$F3D_MAIN" ]; then
     # Replace direct f3d call with xvfb-run wrapped version
     sed -i 's/Command("f3d")/Command("xvfb-run"):arg("-a"):arg("f3d")/' "$F3D_MAIN"
+    # Add isometric camera view (azimuth 45°, elevation 35.264°)
+    sed -i 's/"--no-background",/"--no-background",\n\t\t"--camera-azimuth-angle=45",\n\t\t"--camera-elevation-angle=35.264",/' "$F3D_MAIN"
     # Remove preview_widgets call (not available in older Yazi versions)
     sed -i '/preview_widgets/d' "$F3D_MAIN"
     echo "f3d-preview.yazi patched successfully"
