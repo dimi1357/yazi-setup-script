@@ -11,7 +11,7 @@ sudo apt install -y curl git python3 python3-pip python3-venv file unzip pipx
 
 # Install optional dependencies for enhanced functionality
 echo "Installing optional dependencies (ffmpeg, 7zip, jq, poppler-utils, fd-find, ripgrep, fzf, zoxide, imagemagick)..."
-sudo apt install -y ffmpeg 7zip jq poppler-utils fd-find ripgrep fzf zoxide imagemagick f3d || echo "Some optional dependencies may not be available on your system"
+sudo apt install -y ffmpeg 7zip jq poppler-utils fd-find ripgrep fzf zoxide imagemagick f3d xvfb || echo "Some optional dependencies may not be available on your system"
 
 # Install cb (ClipBoard) for system-clipboard plugin
 echo "Installing ClipBoard (cb) for system-clipboard plugin..."
@@ -116,6 +116,17 @@ if [ -d "f3d-preview.yazi" ]; then
     cd f3d-preview.yazi && git pull && cd ..
 else
     git clone https://github.com/ruudjhuu/f3d-preview.yazi
+fi
+
+# Patch f3d-preview to work on headless/TTY systems (xvfb-run) and older Yazi versions
+echo "Patching f3d-preview.yazi for headless compatibility..."
+F3D_MAIN="$PLUGINS_DIR/f3d-preview.yazi/main.lua"
+if [ -f "$F3D_MAIN" ]; then
+    # Replace direct f3d call with xvfb-run wrapped version
+    sed -i 's/Command("f3d")/Command("xvfb-run"):arg("-a"):arg("f3d")/' "$F3D_MAIN"
+    # Remove preview_widgets call (not available in older Yazi versions)
+    sed -i '/preview_widgets/d' "$F3D_MAIN"
+    echo "f3d-preview.yazi patched successfully"
 fi
 
 # Install system-clipboard.yazi
